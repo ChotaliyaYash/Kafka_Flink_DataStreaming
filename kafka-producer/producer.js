@@ -9,19 +9,42 @@ const kafka = new Kafka({
 const topic = 'weather';
 const producer = kafka.producer();
 let value = 0;
-const sendMessage = () => {
-    value += 1;
-    const data = {
-        city: 'India',
-        temperature: value,
+const logdata = [
+    {
+        "tagId": "1234",
+        "channelId": "12",
+        "publisherId": "12",
+        "adsSourceId": "12",
+        "publisherChannelId": "12",
+        "connectionId": "12",
+    },
+    {
+        "tagId": "123",
+        "channelId": "12",
+        "publisherId": "12",
+        "adsSourceId": "12",
+        "publisherChannelId": "12",
+        "connectionId": "12",
     }
-    console.log(data);
+]
+
+const createMessage = (data) => {
+    // return JSON.stringify(data);
+    return { value: JSON.stringify(data) }
+}
+
+const sendMessage = (i) => {
+    const data = i % 2 === 0 ? logdata[0] : logdata[1];
+
     return producer
         .send({
             topic,
             compression: CompressionTypes.GZIP,
             // messages: [{ city: 'India', temperature: Math.random() }],
-            messages: [{ value: JSON.stringify(data) }],
+            // messages: [{ value: JSON.stringify(data) }],
+            messages: Array(10000)
+                .fill()
+                .map(_ => createMessage(data)),
         })
         .then(console.log)
         .catch((e) => console.error(`[example/producer] ${e.message}`, e));
@@ -30,9 +53,11 @@ const sendMessage = () => {
 const run = async () => {
     await producer.connect();
     console.log('Connected');
-    setInterval(() => {
-        sendMessage();
-    }, 10000);
+    for (let i = 0; i < 10; i++) {
+        setTimeout(() => {
+            sendMessage(i);
+        }, i * 1000);
+    }
 };
 
 // setTimeout(() => {

@@ -25,6 +25,20 @@ import com.mongodb.client.model.InsertOneModel;
 import org.bson.BsonDocument;
 import org.bson.Document;
 
+import java.util.Date;
+
+
+// {
+//   "tagId": "",
+//   "channelId": "",
+//   "publisherId": "",
+//   "adsSourceId": "",
+//   "publisherChannelId": "",
+//   "connectionId": "",
+//   "inventory": 0,
+//   "timestamp": "2020-01-01T00:00:00.000Z",
+// }
+
 public class Main {
 
     static final String BROKERS = "kafka:9092";
@@ -47,38 +61,44 @@ public class Main {
       System.out.println("Kafka source created");
       kafka.print();
 
-      DataStream<Tuple2<MyAverage, Double>> averageTemperatureStream = kafka.keyBy(myEvent -> myEvent.city)
-        .window(TumblingProcessingTimeWindows.of(Time.seconds(60)))
+      DataStream<Tuple2<MyAverage, Double>> averageTemperatureStream = kafka.keyBy(myEvent -> myEvent.tagId)
+        .window(TumblingProcessingTimeWindows.of(Time.seconds(30)))
         .aggregate(new AverageAggregator());
 
-      DataStream<Tuple2<String, Double>> cityAndValueStream = averageTemperatureStream
-        .map(new MapFunction<Tuple2<MyAverage, Double>, Tuple2<String, Double>>() {
-          @Override
-          public Tuple2<String, Double> map(Tuple2<MyAverage, Double> input) throws Exception {
-            return new Tuple2<>(input.f0.city, input.f1);
-          }
-        }); 
-
-      cityAndValueStream.print();
+        DataStream<WeatherData> cityAndValueStream = averageTemperatureStream
+          .map(new MapFunction<Tuple2<MyAverage, Double>, WeatherData>() {
+              @Override
+              public WeatherData map(Tuple2<MyAverage, Double> input) throws Exception {
+                    System.out.println(input.f0.toString() + " " + input.f1);
+                  return new WeatherData(input.f0.tagId, input.f0.channelId, input.f0.publisherId, input.f0.adsSourceId, input.f0.publisherChannelId, input.f0.connectionId, input.f1);
+              }
+          });
 
       try{
 
         System.out.println("Connecting to MongoDB");
 
-        MongoSink<Tuple2<String, Double>> sink = MongoSink.<Tuple2<String, Double>>builder()
-        .setUri("mongodb+srv://ecommerce:ecommerce@cluster0.xvfq2ua.mongodb.net/my_db?retryWrites=true&w=majority&appName=Cluster0")
-        .setDatabase("my_db")
-        .setCollection("weather")
-        .setBatchSize(1000)
-        .setBatchIntervalMs(1000)
-        .setMaxRetries(3)
-        .setDeliveryGuarantee(DeliveryGuarantee.AT_LEAST_ONCE)
-        .setSerializationSchema((value, context) -> {
-            Document doc = new Document("city", value.f0)
-                            .append("average_temperature", value.f1);
-            return new InsertOneModel<>(BsonDocument.parse(doc.toJson()));
-        })
-        .build();
+        MongoSink<WeatherData> sink = MongoSink.<WeatherData>builder()
+            .setUri("mongodb+srv://nandpatel1292:yogaApp@cluster0.srwkvb4.mongodb.net/yoga?retryWrites=true&w=majority")
+            .setDatabase("my_db")
+            .setCollection("weather")
+            .setBatchSize(1000)
+            .setBatchIntervalMs(1000)
+            .setMaxRetries(3)
+            .setDeliveryGuarantee(DeliveryGuarantee.AT_LEAST_ONCE)
+            .setSerializationSchema((value, context) -> {
+                Document doc = new Document("tagId", value.tagId)
+                                .append("channelId", value.channelId)
+                                .append("publisherId", value.publisherId)
+                                .append("adsSourceId", value.adsSourceId)
+                                .append("publisherChannelId", value.publisherChannelId)
+                                .append("connectionId", value.connectionId)
+                                .append("inventory_count", value.inventory)
+                                .append("createdAt", new Date().getTime());
+                return new InsertOneModel<>(BsonDocument.parse(doc.toJson()));
+            })
+            .build();
+    
 
         cityAndValueStream.sinkTo(sink);
 
@@ -86,24 +106,6 @@ public class Main {
       } catch (Exception e) {
         e.printStackTrace();
       }
-
-      // cityAndValueStream.addSink(JdbcSink.sink("insert into weather (city, average_temperature) values (?, ?)",
-      //       (statement, event) -> {
-      //         statement.setString(1, event.f0);
-      //         statement.setDouble(2, event.f1);
-      //       },
-      //       JdbcExecutionOptions.builder()
-      //         .withBatchSize(1000)
-      //         .withBatchIntervalMs(200)
-      //         .withMaxRetries(5)
-      //         .build(),
-      //       new JdbcConnectionOptions.JdbcConnectionOptionsBuilder()
-      //         .withUrl("jdbc:postgresql://docker.for.mac.host.internal:5438/postgres")
-      //         .withDriverName("org.postgresql.Driver")
-      //         .withUsername("postgres")
-      //         .withPassword("postgres")
-      //         .build()
-      // ));
 
       env.execute("Kafka-flink-postgres");
     }
@@ -121,20 +123,23 @@ public class Main {
         @Override
         public MyAverage add(Weather weather, MyAverage myAverage) {
             //logger.debug("add({},{})", myAverage.city, myEvent);
-            myAverage.city = weather.city;
+            myAverage.tagId = weather.tagId;
+            myAverage.channelId = weather.channelId;
+            myAverage.publisherId = weather.publisherId;
+            myAverage.adsSourceId = weather.adsSourceId;
+            myAverage.publisherChannelId = weather.publisherChannelId;
+            myAverage.connectionId = weather.connectionId;
             myAverage.count = myAverage.count + 1;
-            myAverage.sum = myAverage.sum + weather.temperature;
             return myAverage;
         }
 
         @Override
         public Tuple2<MyAverage, Double> getResult(MyAverage myAverage) {
-            return new Tuple2<>(myAverage, myAverage.sum / myAverage.count);
+            return new Tuple2<>(myAverage, myAverage.count);
         }
 
         @Override
         public MyAverage merge(MyAverage myAverage, MyAverage acc1) {
-            myAverage.sum = myAverage.sum + acc1.sum;
             myAverage.count = myAverage.count + acc1.count;
             return myAverage;
         }
@@ -142,16 +147,24 @@ public class Main {
 
     public static class MyAverage {
 
-        public String city;
-        public Integer count = 0;
-        public Double sum = 0d;
+        public String tagId;
+        public String channelId;
+        public String publisherId;
+        public String adsSourceId;
+        public String publisherChannelId;
+        public String connectionId;
+        public Double count = 0.0;
 
         @Override
         public String toString() {
             return "MyAverage{" +
-                    "city='" + city + '\'' +
+                    "tagId='" + tagId + '\'' +
+                    ", channelId='" + channelId + '\'' +
+                    ", publisherId='" + publisherId + '\'' +
+                    ", adsSourceId='" + adsSourceId + '\'' +
+                    ", publisherChannelId='" + publisherChannelId + '\'' +
+                    ", connectionId='" + connectionId + '\'' +
                     ", count=" + count +
-                    ", sum=" + sum +
                     '}';
         }
     }
