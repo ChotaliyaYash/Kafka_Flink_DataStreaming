@@ -1,14 +1,21 @@
 {
-  "name": "js-kafka-producer",
-  "version": "1.0.0",
-  "description": "",
-  "main": "js-producer.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "kafkajs": "^2.2.4"
-  }
+	"name": "js-kafka-producer",
+	"version": "1.0.0",
+	"main": "js-producer.js",
+	"scripts": {
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"start": "node app.js",
+		"dev": "nodemon app.js"
+	},
+	"author": "",
+	"license": "ISC",
+	"dependencies": {
+		"cookie-parser": "^1.4.6",
+		"cors": "^2.8.5",
+		"express": "^4.18.3",
+		"kafkajs": "^2.2.4",
+		"nodemon": "^3.1.0"
+	},
+	"keywords": [],
+	"description": ""
 }
