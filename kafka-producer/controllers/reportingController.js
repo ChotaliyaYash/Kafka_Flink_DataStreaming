@@ -4,21 +4,21 @@ const createReport = async (req, res) => {
 	console.log('createReport');
 	try {
 		const {
-			tagId,
-			publisherId,
-			adsSourceId,
-			publisherChannelId,
-			connectionId,
-			channelId,
+			tgid, //tagid
+			pbid, //publisherid
+			asid, //adssourceid
+			pcid, //publisherchannelid
+			pnid, //connectionid
+			chid, //channelid
 		} = req.query;
 
 		sendMessage({
-			tagId: '1234',
-			channelId: '123',
-			publisherId: '12',
-			adsSourceId: '1',
-			publisherChannelId: '56',
-			connectionId: '12',
+			tagId: tgid,
+			channelId: chid,
+			publisherId: pbid,
+			adsSourceId: asid,
+			publisherChannelId: pcid,
+			connectionId: pnid,
 		});
 
 		return res.status(201).json({
