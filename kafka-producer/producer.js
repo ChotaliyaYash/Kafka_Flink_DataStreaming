@@ -1,12 +1,15 @@
-const { Kafka, CompressionTypes } = require('kafkajs');
+const { Kafka, CompressionTypes, Partitioners } = require('kafkajs');
 
 const kafka = new Kafka({
 	brokers: ['kafka:9092'],
 	clientId: 'example-producer',
+	connectionTimeout: 10000,
 });
 
 const topic = 'weather';
-const producer = kafka.producer();
+const producer = kafka.producer({
+	createPartitioner: Partitioners.LegacyPartitioner,
+});
 
 // const createMessage = (data) => {
 // 	return { value: JSON.stringify(data) };
@@ -38,31 +41,31 @@ const run = async (data) => {
 
 setTimeout(() => {
 	run().catch((e) => console.error(`[example/producer] ${e.message}`, e));
-}, 30000);
+}, 20000);
 
-const errorTypes = ['unhandledRejection', 'uncaughtException'];
-const signalTraps = ['SIGTERM', 'SIGINT', 'SIGUSR2'];
+// const errorTypes = ['unhandledRejection', 'uncaughtException'];
+// const signalTraps = ['SIGTERM', 'SIGINT', 'SIGUSR2'];
 
-errorTypes.map((type) => {
-	process.on(type, async () => {
-		try {
-			console.log(`process.on ${type}`);
-			await producer.disconnect();
-			process.exit(0);
-		} catch (_) {
-			process.exit(1);
-		}
-	});
-});
+// errorTypes.map((type) => {
+// 	process.on(type, async () => {
+// 		try {
+// 			console.log(`process.on ${type}`);
+// 			await producer.disconnect();
+// 			process.exit(0);
+// 		} catch (_) {
+// 			process.exit(1);
+// 		}
+// 	});
+// });
 
-signalTraps.map((type) => {
-	process.once(type, async () => {
-		try {
-			await producer.disconnect();
-		} finally {
-			process.kill(process.pid, type);
-		}
-	});
-});
+// signalTraps.map((type) => {
+// 	process.once(type, async () => {
+// 		try {
+// 			await producer.disconnect();
+// 		} finally {
+// 			process.kill(process.pid, type);
+// 		}
+// 	});
+// });
 
 module.exports = { sendMessage };

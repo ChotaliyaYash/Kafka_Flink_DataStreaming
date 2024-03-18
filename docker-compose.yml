@@ -36,6 +36,8 @@ services:
       context: ./kafka-producer
     container_name: kafka-producer
     # image: kafka-producer
+    ports:
+      - "4005:4005"
     depends_on:
       - kafka
     environment:

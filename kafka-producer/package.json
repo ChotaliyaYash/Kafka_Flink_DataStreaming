@@ -4,8 +4,8 @@
 	"main": "js-producer.js",
 	"scripts": {
 		"test": "echo \"Error: no test specified\" && exit 1",
-		"start": "node app.js",
-		"dev": "nodemon app.js"
+		"start": "node --max-old-space-size=4096 app.js",
+		"dev": "nodemon --max-old-space-size=4096 app.js"
 	},
 	"author": "",
 	"license": "ISC",

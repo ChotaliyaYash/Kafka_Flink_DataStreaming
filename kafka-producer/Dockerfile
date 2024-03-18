@@ -8,4 +8,4 @@ RUN npm install
 
 COPY . .
 
-CMD ./wait-for-it.sh -s -t 60 $ZOOKEEPER_SERVER -- ./wait-for-it.sh -s -t 60 $KAFKA_SERVER -- npm run dev
+CMD ./wait-for-it.sh -s -t 60 $ZOOKEEPER_SERVER -- ./wait-for-it.sh -s -t 60 $KAFKA_SERVER -- npm start
