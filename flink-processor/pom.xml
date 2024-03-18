@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.kavit</groupId>
-    <artifactId>flink-kafka2postgres</artifactId>
+    <artifactId>flink-kafka-mongo</artifactId>
     <version>1.0-SNAPSHOT</version>
 
     <properties>
