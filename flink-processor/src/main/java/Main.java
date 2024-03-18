@@ -56,51 +56,179 @@ public class Main {
                                       .setValueOnlyDeserializer(new WeatherDeserializationSchema())
                                       .build();
 
-      DataStreamSource<Weather> kafka = env.fromSource(source, WatermarkStrategy.noWatermarks(), "kafka");
+    DataStreamSource<Weather> kafka = env.fromSource(source, WatermarkStrategy.noWatermarks(), "kafka");
 
-      System.out.println("Kafka source created");
-      kafka.print();
+    System.out.println("Kafka source created");
+    kafka.print();
 
-      DataStream<Tuple2<MyAverage, Double>> averageTemperatureStream = kafka.keyBy(myEvent -> myEvent.tagId)
-        .window(TumblingProcessingTimeWindows.of(Time.seconds(30)))
+    //   for tagID
+    DataStream<Tuple2<MyAverage, Double>> tagIdDataStream = kafka.keyBy(myEvent -> myEvent.tagId)
+    .window(TumblingProcessingTimeWindows.of(Time.seconds(60)))
+    .aggregate(new AverageAggregator());
+
+    DataStream<WeatherData> tagIdData = tagIdDataStream
+        .map(new MapFunction<Tuple2<MyAverage, Double>, WeatherData>() {
+            @Override
+            public WeatherData map(Tuple2<MyAverage, Double> input) throws Exception {
+                System.out.println(input.f0.toString() + " " + input.f1);
+                return new WeatherData(input.f0.tagId, input.f0.channelId, input.f0.publisherId, input.f0.adsSourceId, input.f0.publisherChannelId, input.f0.connectionId, input.f1);
+            }
+        });
+
+    //   for channelId
+    DataStream<Tuple2<MyAverage, Double>> channelIdDataStream = kafka.keyBy(myEvent -> myEvent.channelId)
+        .window(TumblingProcessingTimeWindows.of(Time.seconds(60)))
         .aggregate(new AverageAggregator());
 
-        DataStream<WeatherData> cityAndValueStream = averageTemperatureStream
-          .map(new MapFunction<Tuple2<MyAverage, Double>, WeatherData>() {
-              @Override
-              public WeatherData map(Tuple2<MyAverage, Double> input) throws Exception {
-                    System.out.println(input.f0.toString() + " " + input.f1);
-                  return new WeatherData(input.f0.tagId, input.f0.channelId, input.f0.publisherId, input.f0.adsSourceId, input.f0.publisherChannelId, input.f0.connectionId, input.f1);
-              }
-          });
+    DataStream<WeatherData> channelIdData = channelIdDataStream
+        .map(new MapFunction<Tuple2<MyAverage, Double>, WeatherData>() {
+            @Override
+            public WeatherData map(Tuple2<MyAverage, Double> input) throws Exception {
+                System.out.println(input.f0.toString() + " " + input.f1);
+                return new WeatherData(input.f0.tagId, input.f0.channelId, input.f0.publisherId, input.f0.adsSourceId, input.f0.publisherChannelId, input.f0.connectionId, input.f1);
+            }
+        });
+
+    //   for adsSourceId
+    DataStream<Tuple2<MyAverage, Double>> adsSourceIdDataStream = kafka.keyBy(myEvent -> myEvent.adsSourceId)
+        .window(TumblingProcessingTimeWindows.of(Time.seconds(60)))
+        .aggregate(new AverageAggregator());
+
+    DataStream<WeatherData> adsSourceIdData = adsSourceIdDataStream
+        .map(new MapFunction<Tuple2<MyAverage, Double>, WeatherData>() {
+            @Override
+            public WeatherData map(Tuple2<MyAverage, Double> input) throws Exception {
+                System.out.println(input.f0.toString() + " " + input.f1);
+                return new WeatherData(input.f0.tagId, input.f0.channelId, input.f0.publisherId, input.f0.adsSourceId, input.f0.publisherChannelId, input.f0.connectionId, input.f1);
+            }
+        });
+
+    //   for publisherChannelId
+    DataStream<Tuple2<MyAverage, Double>> publisherChannelIdDataStream = kafka.keyBy(myEvent -> myEvent.publisherChannelId)
+        .window(TumblingProcessingTimeWindows.of(Time.seconds(60)))
+        .aggregate(new AverageAggregator());
+
+    DataStream<WeatherData> publisherChannelIdData = publisherChannelIdDataStream
+        .map(new MapFunction<Tuple2<MyAverage, Double>, WeatherData>() {
+            @Override
+            public WeatherData map(Tuple2<MyAverage, Double> input) throws Exception {
+                System.out.println(input.f0.toString() + " " + input.f1);
+                return new WeatherData(input.f0.tagId, input.f0.channelId, input.f0.publisherId, input.f0.adsSourceId, input.f0.publisherChannelId, input.f0.connectionId, input.f1);
+            }
+        });
+
+    //   for connectionId
+    DataStream<Tuple2<MyAverage, Double>> connectionIdDataStream = kafka.keyBy(myEvent -> myEvent.connectionId)
+        .window(TumblingProcessingTimeWindows.of(Time.seconds(60)))
+        .aggregate(new AverageAggregator());
+    
+    DataStream<WeatherData> connectionIdData = connectionIdDataStream
+        .map(new MapFunction<Tuple2<MyAverage, Double>, WeatherData>() {
+            @Override
+            public WeatherData map(Tuple2<MyAverage, Double> input) throws Exception {
+                System.out.println(input.f0.toString() + " " + input.f1);
+                return new WeatherData(input.f0.tagId, input.f0.channelId, input.f0.publisherId, input.f0.adsSourceId, input.f0.publisherChannelId, input.f0.connectionId, input.f1);
+            }
+        });
 
       try{
-
         System.out.println("Connecting to MongoDB");
 
-        MongoSink<WeatherData> sink = MongoSink.<WeatherData>builder()
+        //  for tagId
+        MongoSink<WeatherData> tagSink = MongoSink.<WeatherData>builder()
             .setUri("mongodb+srv://nandpatel1292:yogaApp@cluster0.srwkvb4.mongodb.net/yoga?retryWrites=true&w=majority")
             .setDatabase("my_db")
-            .setCollection("weather")
+            .setCollection("tag")
             .setBatchSize(1000)
             .setBatchIntervalMs(1000)
             .setMaxRetries(3)
             .setDeliveryGuarantee(DeliveryGuarantee.AT_LEAST_ONCE)
             .setSerializationSchema((value, context) -> {
                 Document doc = new Document("tagId", value.tagId)
-                                .append("channelId", value.channelId)
-                                .append("publisherId", value.publisherId)
-                                .append("adsSourceId", value.adsSourceId)
-                                .append("publisherChannelId", value.publisherChannelId)
-                                .append("connectionId", value.connectionId)
                                 .append("inventory_count", value.inventory)
                                 .append("createdAt", new Date().getTime());
                 return new InsertOneModel<>(BsonDocument.parse(doc.toJson()));
             })
             .build();
-    
+        
+        tagIdData.sinkTo(tagSink);
+        
+        //  for channelId
+        MongoSink<WeatherData> channelSink = MongoSink.<WeatherData>builder()
+            .setUri("mongodb+srv://nandpatel1292:yogaApp@cluster0.srwkvb4.mongodb.net/yoga?retryWrites=true&w=majority")
+            .setDatabase("my_db")
+            .setCollection("channel")
+            .setBatchSize(1000)
+            .setBatchIntervalMs(1000)
+            .setMaxRetries(3)
+            .setDeliveryGuarantee(DeliveryGuarantee.AT_LEAST_ONCE)
+            .setSerializationSchema((value, context) -> {
+                Document doc = new Document("channelId", value.channelId)
+                                .append("inventory_count", value.inventory)
+                                .append("createdAt", new Date().getTime());
+                return new InsertOneModel<>(BsonDocument.parse(doc.toJson()));
+            })
+            .build();
 
-        cityAndValueStream.sinkTo(sink);
+        channelIdData.sinkTo(channelSink);
+
+        //  for adsSourceId
+        MongoSink<WeatherData> adSourceSink = MongoSink.<WeatherData>builder()
+            .setUri("mongodb+srv://nandpatel1292:yogaApp@cluster0.srwkvb4.mongodb.net/yoga?retryWrites=true&w=majority")
+            .setDatabase("my_db")
+            .setCollection("adsSource")
+            .setBatchSize(1000)
+            .setBatchIntervalMs(1000)
+            .setMaxRetries(3)
+            .setDeliveryGuarantee(DeliveryGuarantee.AT_LEAST_ONCE)
+            .setSerializationSchema((value, context) -> {
+                Document doc = new Document("adsSourceId", value.adsSourceId)
+                                .append("inventory_count", value.inventory)
+                                .append("createdAt", new Date().getTime());
+                return new InsertOneModel<>(BsonDocument.parse(doc.toJson()));
+            })
+            .build();
+
+        adsSourceIdData.sinkTo(adSourceSink);
+        
+        //  for publisherChannelId
+        MongoSink<WeatherData> publisherChannelSink = MongoSink.<WeatherData>builder()
+            .setUri("mongodb+srv://nandpatel1292:yogaApp@cluster0.srwkvb4.mongodb.net/yoga?retryWrites=true&w=majority")
+            .setDatabase("my_db")
+            .setCollection("publisherChannel")
+            .setBatchSize(1000)
+            .setBatchIntervalMs(1000)
+            .setMaxRetries(3)
+            .setDeliveryGuarantee(DeliveryGuarantee.AT_LEAST_ONCE)
+            .setSerializationSchema((value, context) -> {
+                Document doc = new Document("publisherChannelId", value.publisherChannelId)
+                                .append("inventory_count", value.inventory)
+                                .append("createdAt", new Date().getTime());
+                return new InsertOneModel<>(BsonDocument.parse(doc.toJson()));
+            })
+            .build();
+
+        publisherChannelIdData.sinkTo(publisherChannelSink);
+        
+        //  for connectionId
+        MongoSink<WeatherData> connectionSink = MongoSink.<WeatherData>builder()
+            .setUri("mongodb+srv://nandpatel1292:yogaApp@cluster0.srwkvb4.mongodb.net/yoga?retryWrites=true&w=majority")
+            .setDatabase("my_db")
+            .setCollection("connection")
+            .setBatchSize(1000)
+            .setBatchIntervalMs(1000)
+            .setMaxRetries(3)
+            .setDeliveryGuarantee(DeliveryGuarantee.AT_LEAST_ONCE)
+            .setSerializationSchema((value, context) -> {
+                Document doc = new Document("connectionId", value.connectionId)
+                                .append("inventory_count", value.inventory)
+                                .append("createdAt", new Date().getTime());
+                return new InsertOneModel<>(BsonDocument.parse(doc.toJson()));
+            })
+            .build();
+
+        connectionIdData.sinkTo(connectionSink);
+
 
         System.out.println("MongoDB connected successfully.");
       } catch (Exception e) {

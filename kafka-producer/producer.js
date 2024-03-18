@@ -8,24 +8,41 @@ const kafka = new Kafka({
 
 const topic = 'weather';
 const producer = kafka.producer();
-let value = 0;
+
 const logdata = [
     {
         "tagId": "1234",
-        "channelId": "12",
+        "channelId": "123",
         "publisherId": "12",
-        "adsSourceId": "12",
-        "publisherChannelId": "12",
+        "adsSourceId": "1",
+        "publisherChannelId": "56",
+        "connectionId": "12",
+    },
+    {
+        "tagId": "1234",
+        "channelId": "1234",
+        "publisherId": "12",
+        "adsSourceId": "2",
+        "publisherChannelId": "56",
         "connectionId": "12",
     },
     {
         "tagId": "123",
-        "channelId": "12",
+        "channelId": "123",
         "publisherId": "12",
-        "adsSourceId": "12",
-        "publisherChannelId": "12",
+        "adsSourceId": "1",
+        "publisherChannelId": "44",
+        "connectionId": "12",
+    },
+    {
+        "tagId": "123",
+        "channelId": "1234",
+        "publisherId": "12",
+        "adsSourceId": "2",
+        "publisherChannelId": "33",
         "connectionId": "12",
     }
+
 ]
 
 const createMessage = (data) => {
@@ -33,8 +50,9 @@ const createMessage = (data) => {
     return { value: JSON.stringify(data) }
 }
 
-const sendMessage = (i) => {
-    const data = i % 2 === 0 ? logdata[0] : logdata[1];
+const sendMessage = () => {
+    value = Math.floor(Math.random() * 4);
+    const data = logdata[value];
 
     return producer
         .send({
@@ -42,7 +60,7 @@ const sendMessage = (i) => {
             compression: CompressionTypes.GZIP,
             // messages: [{ city: 'India', temperature: Math.random() }],
             // messages: [{ value: JSON.stringify(data) }],
-            messages: Array(10000)
+            messages: Array(Math.floor(Math.random() * 10000))
                 .fill()
                 .map(_ => createMessage(data)),
         })
@@ -53,11 +71,9 @@ const sendMessage = (i) => {
 const run = async () => {
     await producer.connect();
     console.log('Connected');
-    for (let i = 0; i < 10; i++) {
-        setTimeout(() => {
-            sendMessage(i);
-        }, i * 1000);
-    }
+    setInterval(() => {
+        sendMessage();
+    }, 100);
 };
 
 // setTimeout(() => {
