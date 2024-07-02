@@ -29,6 +29,7 @@ const sendMessage = (data) => {
 const run = async (data) => {
 	await producer.connect();
 	console.log('Connected');
+
 	sendMessage({
 		tagId: '1234',
 		channelId: '123',
@@ -37,6 +38,19 @@ const run = async (data) => {
 		publisherChannelId: '56',
 		connectionId: '12',
 	});
+
+	setTimeout(() => {
+		for (let i = 0; i < 99; i++) {
+			sendMessage({
+				tagId: '1234',
+				channelId: '123',
+				publisherId: '12',
+				adsSourceId: '1',
+				publisherChannelId: '56',
+				connectionId: '12',
+			});
+		}
+	}, 10000);
 };
 
 setTimeout(() => {
