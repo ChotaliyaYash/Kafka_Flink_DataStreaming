@@ -12,6 +12,7 @@ import org.apache.flink.configuration.Configuration;
 import org.apache.flink.configuration.MemorySize;
 import org.apache.flink.configuration.TaskManagerOptions;
 import org.apache.flink.configuration.JobManagerOptions;
+import java.lang.Runtime;
 
 import org.apache.flink.api.common.functions.AggregateFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
@@ -64,7 +65,28 @@ public class Main {
         // config.setString("taskmanager.memory.process.size", "4096mb");
         // config.setInteger("taskmanager.numberOfTaskSlots", 4);
 
-      StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment(config);
+        // int defaultLocalParallelism = Runtime.getRuntime().availableProcessors();
+
+        
+        // Set the number of task slots to a lower value due to memory constraints
+        config.setInteger("taskmanager.numberOfTaskSlots", 4);
+
+        // Adjust memory settings to fit within the 512MB heap
+        config.setString("taskmanager.memory.process.size", "512m");  // Match the -Xmx value
+        config.setString("taskmanager.memory.task.heap.size", "256m");
+        config.setString("taskmanager.memory.managed.size", "128m");
+        config.setString("taskmanager.memory.network.min", "32m");
+        config.setString("taskmanager.memory.network.max", "32m");
+        config.setString("taskmanager.memory.framework.heap.size", "64m");
+        config.setString("taskmanager.memory.task.off-heap.size", "16m");
+        config.setString("taskmanager.memory.framework.off-heap.size", "16m");
+
+        // Set parallelism to a lower value due to memory constraints
+        config.setInteger("parallelism.default", 4);
+                
+        StreamExecutionEnvironment env = StreamExecutionEnvironment.createLocalEnvironment(config);
+
+    //   StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment(config);
 
       System.out.println("Environment created");
       KafkaSource<Weather> source = KafkaSource.<Weather>builder()
