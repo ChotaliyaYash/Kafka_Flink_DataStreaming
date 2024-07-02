@@ -8,6 +8,11 @@ import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.kafka.common.TopicPartition;
 
+import org.apache.flink.configuration.Configuration;
+import org.apache.flink.configuration.MemorySize;
+import org.apache.flink.configuration.TaskManagerOptions;
+import org.apache.flink.configuration.JobManagerOptions;
+
 import org.apache.flink.api.common.functions.AggregateFunction;
 import org.apache.flink.api.java.tuple.Tuple2;
 import org.apache.flink.streaming.api.datastream.DataStream;
@@ -44,7 +49,22 @@ public class Main {
     static final String BROKERS = "kafka:9092";
 
     public static void main(String[] args) throws Exception {
-      StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
+
+
+        Configuration config = new Configuration();
+
+        // Set TaskManager memory
+        // config.set(TaskManagerOptions.TOTAL_PROCESS_MEMORY, MemorySize.ofMebiBytes(4096));
+        // Set JobManager memory
+        // config.set(JobManagerOptions.TOTAL_PROCESS_MEMORY, MemorySize.ofMebiBytes(4096));
+
+        // config.setFloat("taskmanager.memory.network.fraction", 0.2f);
+        // config.setString("taskmanager.memory.network.min", "64mb");
+        // config.setString("taskmanager.memory.network.max", "1gb");
+        // config.setString("taskmanager.memory.process.size", "4096mb");
+        // config.setInteger("taskmanager.numberOfTaskSlots", 4);
+
+      StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment(config);
 
       System.out.println("Environment created");
       KafkaSource<Weather> source = KafkaSource.<Weather>builder()
